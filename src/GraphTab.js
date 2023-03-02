@@ -28,7 +28,8 @@ const GraphTab = ({index}) => {
                       >
                         {index}
                     <Graph />
-                    {checked}
+                    
+
                    <CheckBoxGroup
                       direction='row'
                       options={checkOptions}

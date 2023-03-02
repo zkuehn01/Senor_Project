@@ -1,10 +1,11 @@
 import React from 'react'
-import {Box, FileInput, Tip,Text, DropButton, Menu, Button} from 'grommet'
+import {Box, FileInput, DropButton, Menu, Button} from 'grommet'
 
-// {file handle statefunction}
-const Toolbar = ( {functions} ) => {
 
-    const {handleFiles, onSubmitRaw} = functions
+
+const Toolbar = ( {state,functions} ) => {
+    // deconstructing passed function from parent 
+    const {dispatch, handleFiles, onSubmitRaw} = functions
   return (
     <Box
         //margin='small'
@@ -19,17 +20,16 @@ const Toolbar = ( {functions} ) => {
         label='File'
         primary 
         margin='small'
-        //color='black'
         dropContent={
             <Box  >
-                <FileInput
-                name='file' 
-                onChange={(e, {files}) => handleFiles(e,{files})}
-                multiple={{max: 20 }} />
+               <FileInput
+                    name='file' 
+                    onChange={({target: {files}}) => handleFiles({target: {files}})}
+                    multiple={{max: 20 }} />
                 <Button secondary  
                     margin='xsmall' 
                     label='Convert' 
-                    onClick={onSubmitRaw} 
+                    onClick={(e) => onSubmitRaw(e)} 
                     />
             </Box>
             
@@ -40,7 +40,6 @@ const Toolbar = ( {functions} ) => {
         label='Graph'
         primary
         margin='small'
-       // color='black'
         items={[
                 { label: 'Select graph', onClick: () => {} },
                 { label: 'Unselect graph', onClick: () => {} },
@@ -82,3 +81,11 @@ const Toolbar = ( {functions} ) => {
 }
 
 export default Toolbar
+
+
+/*
+<FileInput
+                    name='file' 
+                    onChange={({target: {files}}) => handleFiles(files)}
+                    multiple={{max: 20 }} />
+*/
