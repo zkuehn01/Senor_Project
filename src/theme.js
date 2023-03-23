@@ -35,8 +35,8 @@ const theme = {
                 background: 'mint'
             },
             primary: {
-                background: 'oldGold',
-                color: 'white'
+                background: 'teal',
+                color: 'black'
                 
             },
             secondary: {

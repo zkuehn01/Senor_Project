@@ -4,9 +4,11 @@ import axios from 'axios'
  const reducer = (state, action) => {
   switch(action.type) {
       case 'handle-files':
-            return{ ...state, rawFiles: [...state, action.payload.files]}
+            return{ ...state, rawFiles: [...state.rawFiles, action.payload]}
       case 'submit-raw':
           return {...state, submit: true}
+      case 'reset-submit':
+            return {...state, submit: false}
       //process-good :  dispatched wn post request succeeds, return { graphData: [...state, action.payload]}
       //select-graph:
       //deselect-graph:
