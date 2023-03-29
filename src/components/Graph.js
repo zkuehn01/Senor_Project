@@ -154,9 +154,9 @@ const Chartt = () => {
   }, []);
 
   return (
-    <div style={{margin: "200px 0"}}>
+    <div style={{margin: "50px 0"}}>
       <canvas ref={chartContainer} />
-      <button id="export-file" className="btn intext-btn btn-primary" style={{margin: "200px 0"}}>Download Data</button>
+     
     </div>
   );
   
