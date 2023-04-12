@@ -1,165 +1,142 @@
-import React, { useEffect, useRef, useState } from "react";
-import {Chart} from "chart.js/auto";
-import zoomPlugin from "chartjs-plugin-zoom";
-import "chartjs-adapter-moment";
-import { positiveData } from "./PositiveData";
-import { negativeData } from "./NegativeData";
+import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
 
-Chart.register(zoomPlugin);
+// Add the onDataFetched prop
+const Graph = ({ onDataFetched }) => {
+  const svgRef = useRef(null);
+  const [data, setData] = useState({ waveform: [], dataXml: [] });
 
-/*
-This function parseWaveform, is taking a string rawWaveForm as input. The function will use a regualar expression .match() 
-which extracts the data points in the rawWaveForm. It is taking this string and extracting the _x and _y time and voltage values 
-of each data point. 
-The values are then pushed into two seperate arrays (timeStamp & voltages).
-The function then returns an object that contains both arrays as properties. 
-*/
-const parseWaveform = (rawWaveForm) => {
-  let timeStamps = [];
-  let voltages = [];
-  rawWaveForm.match(/dp x="(.*?)" y="(.*?)"/g).forEach((dp) => {
-    let timeStamp = parseFloat(dp.match(/dp x="(.*?)"/)[1]);
-    let voltage = parseFloat(dp.match(/y="(.*?)"/)[1]);
-    timeStamps.push(timeStamp);
-    voltages.push(voltage);
-  });
-  return { timeStamps, voltages };
-};
-
-/*
-Down below the first constant invokes the parseWaveform function with positive data and breaks down the objects into two variables.
-The second constant is doing the same thing but with negativeData
-This below extracts the time and voltage data from two seperate wabeform data sources
-*/
-const { timeStamps: positiveTimeStamps, voltages: positiveVoltages } = parseWaveform(positiveData);
-const { timeStamps: negativeTimeStamps, voltages: negativeVoltages } = parseWaveform(negativeData);
-
-/*
-Here we are constructing our graph that defines the data positiveVoltages & negativeVoltages.
-using chart.js libraries and documentation we can see how the layout of the graph is designed.
-*/
-
-//Milestones (**Desired SW Tool Features**)
-/*
-Waveform Plot both positive and negative pulse**
-Zoom in and out**
-Overlay 1 or more waveforms**
-  Single or Batch processing
-  Export function (Image, Raw data in excel, CSV, summary of IP1 or IP2 or all Data Points, etc. )
-Customizable background color waveform plot color.**
-Cursor hover over waveform points with data pop up.**
-GUI Interface**
-  Intuitive Function
-  Y axis should auto scale from 500mA to 40 Amps?
-  X axis should auto scale from 10nS to 50nS?
-Waveform Plot both positive and negative pulse**
-Zoom in and out**
-Overlay 1 or more waveforms**
-
-*/
-const chartConfig = {
-  type: "line",
-  data: {
-    labels: positiveTimeStamps.concat(negativeTimeStamps),
-    datasets: [
-      {
-        label: "Positive Voltage",
-        data: positiveVoltages,
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        borderWidth: 1
-      },
-      {
-        label: "Negative Voltage",
-        data: negativeVoltages,
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
-        borderWidth: 1
-      }
-    ]
-  },
-  options: {
-
-    title: {
-      display: true,
-      text: "World Wine Production 2018"
-     },
-    scales: {
-      xAxes: [
-        {
-          scaleLabel: {
-            display: true,
-            labelString: "Time (nS)"
-          },
-          ticks: {
-            min: 10,
-            max: 50,
-            stepSize: 10
-          }
-        }
-      ],
-      yAxes: [
-        {
-          scaleLabel: {
-            display: true,
-            labelString: "Current (Amps)"
-          },
-          ticks: {
-            min: 0.5,
-            max: 40,
-            stepSize: 5
-          }
-        }
-      ]
-    },
-    plugins: {
-      zoom: {
-        zoom: {
-          wheel: {
-            enabled: true
-          },
-          mode: "x",
-          speed: 100
-        },
-        pan: {
-          enabled: true,
-          mode: "x",
-          speed: 0.5
-        }
-      }
-    }
-  }
-};
-
-
-//Create a function component Chartt that makes use of the react hooks useRef and useEffect
-//useRef creates a reference to the html element which is our chartContainer variable
-//useState sets up the variable chartInstance & setChartInstance function to update the values. we will set this to null
-const Chartt = () => {
-  const chartContainer = useRef(null);
-  const [chartInstance, setChartInstance] = useState(null);
-
-//useEffect is used to run an effect after the component is rendered for the first time
-//we will leave the destroy empty like this [], so we dont destroy the instance when starting the application
-//chartContainer.current will create the new instance when starting the application
   useEffect(() => {
-    if (chartContainer && chartContainer.current) {
-      const newChartInstance = new Chart(chartContainer.current, chartConfig);
-      setChartInstance(newChartInstance);
-      
-    }
-    return () => {
-      chartInstance?.destroy();
-    };
+    fetch('/dataCombined')
+      .then(res => res.json())
+      .then(res => {
+        setData(res);
+        // Call the onDataFetched prop with the fetched data
+        onDataFetched(res);
+      })
+      .catch(err => console.error(err));
   }, []);
 
-  return (
-    <div style={{margin: "50px 0"}}>
-      <canvas ref={chartContainer} />
-     
-    </div>
-  );
+  useEffect(() => {
+    drawGraph(data.waveform, data.dataXml);
+  }, [data]);
+
+  const drawGraph = (waveformData, dataXmlData) => {
+    const margin = { top: 20, right: 20, bottom: 70, left: 70 }; // Increase bottom and left margin to make space for axis labels
+    const width = 960 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
   
+    
+
+    const svg = d3.select(svgRef.current)
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom);
+  
+    svg.selectAll('*').remove();
+  
+    const g = svg.append('g')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+  
+    const xWaveform = d3.scaleLinear()
+      .domain(d3.extent(waveformData, d => parseFloat(d.x)))
+      .range([0, width]);
+  
+    const yWaveform = d3.scaleLinear()
+      .domain(d3.extent(waveformData, d => parseFloat(d.y)))
+      .range([height, 0]);
+  
+    const xDataXml = d3.scaleLinear()
+      .domain(d3.extent(dataXmlData, d => parseFloat(d.x)))
+      .range([0, width]);
+  
+    const yDataXml = d3.scaleLinear()
+      .domain(d3.extent(dataXmlData, d => parseFloat(d.y)))
+      .range([height, 0]);
+  
+    const lineWaveform = d3.line()
+      .x(d => xWaveform(parseFloat(d.x)))
+      .y(d => yWaveform(parseFloat(d.y)));
+  
+    const lineDataXml = d3.line()
+      .x(d => xDataXml(parseFloat(d.x)))
+      .y(d => yDataXml(parseFloat(d.y)));
+  
+    const createPath = (data, line, color) => {
+      g.append('path')
+        .datum(data)
+        .attr('class', 'line')
+        .attr('d', line)
+        .style('stroke', color)
+        .style('stroke-width', '2px')
+        .style('fill', 'none');
+    };
+  
+    createPath(waveformData, lineWaveform, 'steelblue');
+    createPath(dataXmlData, lineDataXml, 'red');
+  
+    const xAxis = g.append('g')
+      .attr('transform', `translate(0, ${height})`)
+      .call(d3.axisBottom(xDataXml));
+  
+    const yAxis = g.append('g')
+      .call(d3.axisLeft(yDataXml));
+  
+    // Add x-axis label
+    g.append('text')
+      .attr('class', 'axis-label')
+      .attr('text-anchor', 'middle')
+      .attr('x', width / 2)
+      .attr('y', height + margin.bottom / 2)
+      .text('X-Axis Label');
+  
+    // Add y-axis label
+    g.append('text')
+      .attr('class', 'axis-label')
+      .attr('text-anchor', 'middle')
+      .attr('transform', `translate(${-margin.left / 2}, ${height / 2}) rotate(-90)`)
+      .text('Y-Axis Label');
+  
+    g.append('rect')
+      .attr('width', width)
+      .attr('height', height)
+      .style('fill', 'transparent');
+      
+      const zoom = d3.zoom()
+      .scaleExtent([1, 10])
+      .translateExtent([[0, 0], [width, height]])
+      .extent([[0, 0], [width, height]])
+      .on('zoom', (event) => {
+        const newX = event.transform.rescaleX(xDataXml);
+        const newY = event.transform.rescaleY(yDataXml);
+  
+        const updatedLineWaveform = lineWaveform
+          .x(d => newX(parseFloat(d.x)))
+          .y(d => newY(parseFloat(d.y)));
+  
+        const updatedLineDataXml = lineDataXml
+          .x(d => newX(parseFloat(d.x)))
+          .y(d => newY(parseFloat(d.y)));
+  
+        g.selectAll('.line')
+          .filter((_, i) => i === 0)
+          .attr('d', updatedLineWaveform);
+  
+        g.selectAll('.line')
+          .filter((_, i) => i === 1)
+          .attr('d', updatedLineDataXml);
+  
+        xAxis.call(d3.axisBottom(newX));
+        yAxis.call(d3.axisLeft(newY));
+      });
+  
+    svg.call(zoom);
+  };
+  
+return (
+  <svg ref={svgRef}>
+    <g className="axis-labels"></g>
+  </svg>
+);
 };
 
-export default Chartt;
+export default Graph;

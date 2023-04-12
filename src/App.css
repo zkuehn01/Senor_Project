@@ -1,0 +1,77 @@
+.App {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.navbar {
+  background-color: #4465d1;
+  color: #fff;
+  padding: 10px;
+  margin-bottom: 20px; /* Add bottom margin to create space under navbar */
+}
+
+.main-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 60px); /* Subtract navbar height from viewport height */
+}
+
+.graph-container {
+  width: 80vw;
+  max-width: 1000px;
+  height: 60vh;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+.SidePanel {
+  background-color: #f9f9f9;
+  border-left: 1px solid #ccc;
+  width: 200px;
+  padding: 10px;
+  margin-top: -70px;
+  height: 600px;
+}
+
+.SidePanel h3 {
+  margin-top: 0;
+}
+
+.row-container {
+  height: calc(100% - 60px);
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  margin-left: 20px;
+}
+
+.row input {
+  margin-left: 10px;
+}
+
+.button-container {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* New styles for SidePanel on the right side */
+.main-container {
+  flex-direction: row;
+}
+
+.graph-container {
+  order: 2;
+}
+
+.SidePanel {
+  order: 1;
+  border-left: none;
+  border-right: 1px solid #ccc;
+}
