@@ -1,165 +1,149 @@
-import React, { useEffect, useRef, useState } from "react";
-import {Chart} from "chart.js/auto";
-import zoomPlugin from "chartjs-plugin-zoom";
-import "chartjs-adapter-moment";
-import { positiveData } from "./PositiveData";
-import { negativeData } from "./NegativeData";
+import React, { useEffect, useRef, useState } from 'react';
+import * as d3 from 'd3';
 
-Chart.register(zoomPlugin);
+const Graph = ({ points }) => {
+  const svgRef = useRef();
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [tooltipData, setTooltipData] = useState({ x: 0, y: 0 });
 
-/*
-This function parseWaveform, is taking a string rawWaveForm as input. The function will use a regualar expression .match() 
-which extracts the data points in the rawWaveForm. It is taking this string and extracting the _x and _y time and voltage values 
-of each data point. 
-The values are then pushed into two seperate arrays (timeStamp & voltages).
-The function then returns an object that contains both arrays as properties. 
-*/
-const parseWaveform = (rawWaveForm) => {
-  let timeStamps = [];
-  let voltages = [];
-  rawWaveForm.match(/dp x="(.*?)" y="(.*?)"/g).forEach((dp) => {
-    let timeStamp = parseFloat(dp.match(/dp x="(.*?)"/)[1]);
-    let voltage = parseFloat(dp.match(/y="(.*?)"/)[1]);
-    timeStamps.push(timeStamp);
-    voltages.push(voltage);
-  });
-  return { timeStamps, voltages };
-};
-
-/*
-Down below the first constant invokes the parseWaveform function with positive data and breaks down the objects into two variables.
-The second constant is doing the same thing but with negativeData
-This below extracts the time and voltage data from two seperate wabeform data sources
-*/
-const { timeStamps: positiveTimeStamps, voltages: positiveVoltages } = parseWaveform(positiveData);
-const { timeStamps: negativeTimeStamps, voltages: negativeVoltages } = parseWaveform(negativeData);
-
-/*
-Here we are constructing our graph that defines the data positiveVoltages & negativeVoltages.
-using chart.js libraries and documentation we can see how the layout of the graph is designed.
-*/
-
-//Milestones (**Desired SW Tool Features**)
-/*
-Waveform Plot both positive and negative pulse**
-Zoom in and out**
-Overlay 1 or more waveforms**
-  Single or Batch processing
-  Export function (Image, Raw data in excel, CSV, summary of IP1 or IP2 or all Data Points, etc. )
-Customizable background color waveform plot color.**
-Cursor hover over waveform points with data pop up.**
-GUI Interface**
-  Intuitive Function
-  Y axis should auto scale from 500mA to 40 Amps?
-  X axis should auto scale from 10nS to 50nS?
-Waveform Plot both positive and negative pulse**
-Zoom in and out**
-Overlay 1 or more waveforms**
-
-*/
-const chartConfig = {
-  type: "line",
-  data: {
-    labels: positiveTimeStamps.concat(negativeTimeStamps),
-    datasets: [
-      {
-        label: "Positive Voltage",
-        data: positiveVoltages,
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "rgba(54, 162, 235, 0.2)",
-        borderWidth: 1
-      },
-      {
-        label: "Negative Voltage",
-        data: negativeVoltages,
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "rgba(255, 99, 132, 0.2)",
-        borderWidth: 1
-      }
-    ]
-  },
-  options: {
-
-    title: {
-      display: true,
-      text: "World Wine Production 2018"
-     },
-    scales: {
-      xAxes: [
-        {
-          scaleLabel: {
-            display: true,
-            labelString: "Time (nS)"
-          },
-          ticks: {
-            min: 10,
-            max: 50,
-            stepSize: 10
-          }
-        }
-      ],
-      yAxes: [
-        {
-          scaleLabel: {
-            display: true,
-            labelString: "Current (Amps)"
-          },
-          ticks: {
-            min: 0.5,
-            max: 40,
-            stepSize: 5
-          }
-        }
-      ]
-    },
-    plugins: {
-      zoom: {
-        zoom: {
-          wheel: {
-            enabled: true
-          },
-          mode: "x",
-          speed: 100
-        },
-        pan: {
-          enabled: true,
-          mode: "x",
-          speed: 0.5
-        }
-      }
-    }
-  }
-};
-
-
-//Create a function component Chartt that makes use of the react hooks useRef and useEffect
-//useRef creates a reference to the html element which is our chartContainer variable
-//useState sets up the variable chartInstance & setChartInstance function to update the values. we will set this to null
-const Chartt = () => {
-  const chartContainer = useRef(null);
-  const [chartInstance, setChartInstance] = useState(null);
-
-//useEffect is used to run an effect after the component is rendered for the first time
-//we will leave the destroy empty like this [], so we dont destroy the instance when starting the application
-//chartContainer.current will create the new instance when starting the application
   useEffect(() => {
-    if (chartContainer && chartContainer.current) {
-      const newChartInstance = new Chart(chartContainer.current, chartConfig);
-      setChartInstance(newChartInstance);
-      
+    const margin = { top: 20, right: 20, bottom: 70, left: 70 };
+    const width = 1000 - margin.left - margin.right;
+    const height = 600 - margin.top - margin.bottom;
+
+    const svg = d3.select(svgRef.current)
+      .attr('width', width + margin.left + margin.right)
+      .attr('height', height + margin.top + margin.bottom);
+
+    svg.selectAll('*').remove();
+
+    const g = svg.append('g')
+      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+
+    const x = d3.scaleLinear()
+      .domain(d3.extent(points, d => parseFloat(d.x)))
+      .range([0, width]);
+
+    const y = d3.scaleLinear()
+      .domain(d3.extent(points, d => parseFloat(d.y)))
+      .range([height, 0]);
+
+    const line = d3.line()
+      .x(d => x(parseFloat(d.x)))
+      .y(d => y(parseFloat(d.y)));
+
+    const path = g.append('path')
+      .datum(points)
+      .attr('class', 'line')
+      .attr('d', line)
+      .style('stroke', 'steelblue')
+      .style('stroke-width', '2px')
+      .style('fill', 'none');
+
+    const bisect = d3.bisector(d => parseFloat(d.x)).left;
+
+    function findNearestPoint(mouseX) {
+      const x0 = x.invert(mouseX);
+      const i = bisect(points, x0, 1);
+      const d0 = points[i - 1];
+      const d1 = points[i];
+      return x0 - parseFloat(d0.x) < parseFloat(d1.x) - x0 ? d0 : d1;
     }
-    return () => {
-      chartInstance?.destroy();
-    };
-  }, []);
+
+    // Add a circle to represent the hovered point
+    const focus = g.append('circle')
+      .style('display', 'none')
+      .attr('r', 4.5)
+      .style('fill', 'none')
+      .style('stroke', 'black');
+
+      path
+      .on('mousemove', function (event) {
+        const [mouseX] = d3.pointer(event);
+        const nearestPoint = findNearestPoint(mouseX);
+    
+        setTooltipPosition({ x: mouseX + margin.left, y: y(parseFloat(nearestPoint.y)) + margin.top });
+        setTooltipData({ x: parseFloat(nearestPoint.x).toFixed(2), y: parseFloat(nearestPoint.y).toFixed(2) }); // Add toFixed(2) to limit decimal points
+        setTooltipVisible(true);
+    
+        focus
+          .style('display', null)
+          .attr('cx', x(parseFloat(nearestPoint.x)))
+          .attr('cy', y(parseFloat(nearestPoint.y)));
+      })
+      .on('mouseout', function () {
+        setTooltipVisible(false);
+        focus.style('display', 'none');
+      });
+    
+
+  
+
+    const xAxis = g.append('g')
+      .attr('transform', `translate(0, ${height})`)
+      .call(d3.axisBottom(x));
+
+    const yAxis = g.append('g')
+      .call(d3.axisLeft(y));
+
+    // Add x-axis label
+    g.append('text')
+      .attr('class', 'axis-label')
+      .attr('text-anchor', 'middle')
+      .attr('x', width / 2)
+      .attr('y', height + margin.bottom / 2)
+      .text('X-Axis Label');
+
+    // Add y-axis label
+    g.append('text')
+      .attr('class', 'axis-label')
+      .attr('text-anchor', 'middle')
+      .attr('transform', `translate(${-margin.left / 2}, ${height / 2}) rotate(-90)`)
+      .text('Y-Axis Label');
+
+      g.insert('rect', ':first-child')
+      .attr('width', width)
+      .attr('height', height)
+      .style('fill', 'transparent');
+    
+
+
+    const zoom = d3.zoom()
+      .scaleExtent([1, 10])
+      .translateExtent([[0, 0], [width, height]])
+      .extent([[0, 0], [width, height]])
+      .on('zoom', (event) => {
+        const newX = event.transform.rescaleX(x);
+        const newY = event.transform.rescaleY(y);
+
+        const updatedLine = line
+          .x(d => newX(parseFloat(d.x)))
+          .y(d => newY(parseFloat(d.y)));
+
+        path.attr('d', updatedLine);
+
+        xAxis.call(d3.axisBottom(newX));
+        yAxis.call(d3.axisLeft(newY));
+      });
+
+    svg.call(zoom);
+  }, [points]);
 
   return (
-    <div style={{margin: "50px 0"}}>
-      <canvas ref={chartContainer} />
-     
+    <div className="GraphContainer">
+      <svg ref={svgRef}></svg>
+      {tooltipVisible && (
+        <div className="tooltip" style={{ left: tooltipPosition.x, top: tooltipPosition.y }}>
+          <div>x-value: {tooltipData.x}</div>
+          <div>y-value: {tooltipData.y}</div>
+        </div>
+      )}
     </div>
   );
   
+  
+  
 };
 
-export default Chartt;
+export default Graph;
