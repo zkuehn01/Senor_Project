@@ -1,149 +1,123 @@
-import React, { useEffect, useRef, useState } from 'react';
-import * as d3 from 'd3';
+import React, { useEffect, useRef } from 'react';
+import { Chart } from 'chart.js/auto';
+import 'chartjs-adapter-moment';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
-const Graph = ({ points }) => {
-  const svgRef = useRef();
-  const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [tooltipData, setTooltipData] = useState({ x: 0, y: 0 });
+Chart.register(zoomPlugin);
+
+const Graph = ({ waveformPoints, dataPoints }) => {
+  const chartRef = useRef();
+  const chartInstanceRef = useRef(null);
 
   useEffect(() => {
-    const margin = { top: 20, right: 20, bottom: 70, left: 70 };
-    const width = 1000 - margin.left - margin.right;
-    const height = 600 - margin.top - margin.bottom;
+    const ctx = chartRef.current.getContext('2d');
 
-    const svg = d3.select(svgRef.current)
-      .attr('width', width + margin.left + margin.right)
-      .attr('height', height + margin.top + margin.bottom);
+    // Parse the waveform and data points
+    const parsedWaveformPoints = waveformPoints.map(point => {
+      return {
+        x: parseFloat(point.x),
+        y: parseFloat(point.y),
+      };
+    });
+    const parsedDataPoints = dataPoints.map(point => {
+      return {
+        x: parseFloat(point.x),
+        y: parseFloat(point.y),
+      };
+    });
 
-    svg.selectAll('*').remove();
+    // Create the waveform dataset
+    const waveformDataset = {
+      label: "Positive Data",
+      data: parsedWaveformPoints,
+      borderColor: 'steelblue',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 0,
+    };
 
-    const g = svg.append('g')
-      .attr('transform', `translate(${margin.left}, ${margin.top})`);
+    // Create the data points dataset
+    const dataDataset = {
+      label: "Negative Data",
+      data: parsedDataPoints,
+      borderColor: 'orange',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 0,
+    };
 
-    const x = d3.scaleLinear()
-      .domain(d3.extent(points, d => parseFloat(d.x)))
-      .range([0, width]);
-
-    const y = d3.scaleLinear()
-      .domain(d3.extent(points, d => parseFloat(d.y)))
-      .range([height, 0]);
-
-    const line = d3.line()
-      .x(d => x(parseFloat(d.x)))
-      .y(d => y(parseFloat(d.y)));
-
-    const path = g.append('path')
-      .datum(points)
-      .attr('class', 'line')
-      .attr('d', line)
-      .style('stroke', 'steelblue')
-      .style('stroke-width', '2px')
-      .style('fill', 'none');
-
-    const bisect = d3.bisector(d => parseFloat(d.x)).left;
-
-    function findNearestPoint(mouseX) {
-      const x0 = x.invert(mouseX);
-      const i = bisect(points, x0, 1);
-      const d0 = points[i - 1];
-      const d1 = points[i];
-      return x0 - parseFloat(d0.x) < parseFloat(d1.x) - x0 ? d0 : d1;
+    // Destroy the previous chart instance, if there is one
+    if (chartInstanceRef.current) {
+      chartInstanceRef.current.destroy();
     }
 
-    // Add a circle to represent the hovered point
-    const focus = g.append('circle')
-      .style('display', 'none')
-      .attr('r', 4.5)
-      .style('fill', 'none')
-      .style('stroke', 'black');
+    // Create a new chart instance and store it in the ref for later use
+    chartInstanceRef.current = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [waveformDataset, dataDataset], // Add both datasets
+      },
+      options: {
+        animation: {
+          duration: 0, // Disable animation
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Time (nS)',
+            },
+          },
+          y: {
+            type: 'linear',
+            title: {
+              display: true,
+              text: 'Current (A)',
+            },
+            beforeDataLimits: (scale) => {
+              scale.min = 0;
+            },
+          },
+        },
+        plugins: {
+          zoom: {
+            zoom: {
+              wheel: {
+                enabled: true,
+              },
+              pinch: {
+                enabled: true
+              },
+              mode: 'xy',
+            },
+            pan: {
+              enabled: true,
+              mode: 'xy',
+              speed: 10,
+              threshold: 10,
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: (context) => {
+                const { parsed } = context; // use parsed property instead of raw
+                return `x-value: ${parsed.x.toFixed(2)}, y-value: ${parsed.y.toFixed(2)}`;
+              },
+            },
+          },
+        },
+      },
+      plugins: [zoomPlugin], // Add zoom plugin instance
+    });
 
-      path
-      .on('mousemove', function (event) {
-        const [mouseX] = d3.pointer(event);
-        const nearestPoint = findNearestPoint(mouseX);
-    
-        setTooltipPosition({ x: mouseX + margin.left, y: y(parseFloat(nearestPoint.y)) + margin.top });
-        setTooltipData({ x: parseFloat(nearestPoint.x).toFixed(2), y: parseFloat(nearestPoint.y).toFixed(2) }); // Add toFixed(2) to limit decimal points
-        setTooltipVisible(true);
-    
-        focus
-          .style('display', null)
-          .attr('cx', x(parseFloat(nearestPoint.x)))
-          .attr('cy', y(parseFloat(nearestPoint.y)));
-      })
-      .on('mouseout', function () {
-        setTooltipVisible(false);
-        focus.style('display', 'none');
-      });
-    
-
-  
-
-    const xAxis = g.append('g')
-      .attr('transform', `translate(0, ${height})`)
-      .call(d3.axisBottom(x));
-
-    const yAxis = g.append('g')
-      .call(d3.axisLeft(y));
-
-    // Add x-axis label
-    g.append('text')
-      .attr('class', 'axis-label')
-      .attr('text-anchor', 'middle')
-      .attr('x', width / 2)
-      .attr('y', height + margin.bottom / 2)
-      .text('X-Axis Label');
-
-    // Add y-axis label
-    g.append('text')
-      .attr('class', 'axis-label')
-      .attr('text-anchor', 'middle')
-      .attr('transform', `translate(${-margin.left / 2}, ${height / 2}) rotate(-90)`)
-      .text('Y-Axis Label');
-
-      g.insert('rect', ':first-child')
-      .attr('width', width)
-      .attr('height', height)
-      .style('fill', 'transparent');
-    
-
-
-    const zoom = d3.zoom()
-      .scaleExtent([1, 10])
-      .translateExtent([[0, 0], [width, height]])
-      .extent([[0, 0], [width, height]])
-      .on('zoom', (event) => {
-        const newX = event.transform.rescaleX(x);
-        const newY = event.transform.rescaleY(y);
-
-        const updatedLine = line
-          .x(d => newX(parseFloat(d.x)))
-          .y(d => newY(parseFloat(d.y)));
-
-        path.attr('d', updatedLine);
-
-        xAxis.call(d3.axisBottom(newX));
-        yAxis.call(d3.axisLeft(newY));
-      });
-
-    svg.call(zoom);
-  }, [points]);
+  }, [waveformPoints, dataPoints]);
 
   return (
     <div className="GraphContainer">
-      <svg ref={svgRef}></svg>
-      {tooltipVisible && (
-        <div className="tooltip" style={{ left: tooltipPosition.x, top: tooltipPosition.y }}>
-          <div>x-value: {tooltipData.x}</div>
-          <div>y-value: {tooltipData.y}</div>
-        </div>
-      )}
+      <canvas ref={chartRef}></canvas>
     </div>
   );
-  
-  
-  
 };
 
 export default Graph;

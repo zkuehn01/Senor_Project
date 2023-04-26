@@ -5,13 +5,16 @@
 }
 
 .navbar {
-  background-color: #4465d1;
+  background-color: #831515;
+  height: 70px;
   color: #fff;
   padding: 10px;
-  margin-bottom: 20px; /* Add bottom margin to create space under navbar */
+  margin-bottom: -90px; /* Add bottom margin to create space under navbar */
 }
 
 .main-container {
+  background-color: #ffffff;
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -130,7 +133,7 @@
 .Legend {
   position: absolute;
   top: 32%; /* Align to the middle of the page */
-  left: 81%;
+  left: 82%;
   transform: translateY(-50%); /* Adjust the position by half of the height of the element */
   right: 0;
   width: 300px;
@@ -185,5 +188,75 @@
 }
 
 .Legend .row input[type='button']:hover {
+  background-color: #2f4b8c;
+}
+
+
+
+/* LineInfo*/
+
+.LineInfo {
+  position: absolute;
+  top: 90%; /* Align to the middle of the page */
+  left: 57%;
+  transform: translate(-50%, -50%); /* Adjust the position by half of the width and height of the element */
+  width: 300px;
+  height: 170px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
+  display: flex; /* Use flexbox to arrange children in columns */
+  flex-direction: column; /* Arrange children in a column */
+  align-items: center; /* Center children horizontally */
+  justify-content: center; /* Center children vertically */
+}
+
+.LineInfo h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+}
+
+.LineInfo hr {
+  margin: 10px 0;
+  border: none;
+  border-top: 1px solid #ccc;
+  width: 100%; /* Make the horizontal line span the width of the container */
+}
+
+.LineInfo .column {
+  margin-bottom: 10px;
+  display: flex; /* Use flexbox to arrange children in columns */
+  flex-direction: row; /* Arrange children in a row */
+  align-items: center; /* Center children vertically */
+  justify-content: space-between; /* Add space between children */
+  width: 100%; /* Make each column span the width of the container */
+}
+
+.LineInfo .column label {
+  font-size: 1rem;
+}
+
+.LineInfo .column .LineInfo-label {
+  width: 50px;
+}
+
+.LineInfo .column .LineInfo-value {
+  width: 60px;
+}
+
+.LineInfo .column input[type='text'] {
+  width: 60px;
+  margin-left: 10px;
+}
+
+.LineInfo .column input[type='button'] {
+  border: none;
+  background-color: #4465d1;
+  color: #fff;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.LineInfo .column input[type='button']:hover {
   background-color: #2f4b8c;
 }
