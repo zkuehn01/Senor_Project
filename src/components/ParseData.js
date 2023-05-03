@@ -1,10 +1,10 @@
 import xml2js from 'xml2js';
 import { useEffect, useState } from 'react';
 
-import waveform from './waveform.xml';
+import data from './data.xml';
 
-const Parse = ({ onPointsParsed }) => {
-  const [waveformPoints, setWaveformPoints] = useState([]);
+const ParseData = ({ onDataParsed }) => {
+  const [dataPoints, setDataPoints] = useState([]);
 
   useEffect(() => {
     const parseXml = (xml) => {
@@ -13,14 +13,14 @@ const Parse = ({ onPointsParsed }) => {
         if (err) {
           console.error('Error parsing XML:', err);
         } else {
-          const points = getPoints(result);
-          setWaveformPoints(points);
+          const Dpoints = getPoints(result);
+          setDataPoints(Dpoints);
         }
       });
     };
 
-    // Load the waveform.xml file using fetch API
-    fetch(waveform)
+    // Load the data.xml file using fetch API
+    fetch(data)
       .then(response => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -31,7 +31,7 @@ const Parse = ({ onPointsParsed }) => {
         parseXml(xml);
       })
       .catch(error => {
-        console.error('Error fetching waveform XML:', error);
+        console.error('Error fetching data XML:', error);
       });
   }, []);
 
@@ -44,15 +44,15 @@ const Parse = ({ onPointsParsed }) => {
     return dataPoints.map(dp => ({
       x: Number(dp['$']['x']),
       y: Number(dp['$']['y']),
-      source: 'waveform',
+      source: 'data',
     }));
   };
 
   useEffect(() => {
-    onPointsParsed(waveformPoints);
-  }, [waveformPoints, onPointsParsed]);
+    onDataParsed(dataPoints);
+  }, [dataPoints, onDataParsed]);
 
   return null;
 };
 
-export default Parse;
+export default ParseData;
